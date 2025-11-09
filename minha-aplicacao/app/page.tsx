@@ -1,8 +1,42 @@
-import React from "react";
+"use client"
+
+import React, { useState } from "react";
 import TextType from "../components/shared/TextType";
 import MetaBalls from "@/components/shared/MetaBalls";
 
 export default function LoginPage() {
+  const API_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || "http://localhost:3001";
+
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.id]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Erro ao logar");
+
+      localStorage.setItem("token", data.token);
+      alert("✅ Login realizado com sucesso!");
+      window.location.href = "/chatbot";
+    } catch (err) {
+      console.error(err);
+      setError("Falha ao entrar. Verifique seu email e senha.");
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center gap-6 w-full">
       <div className="text-center mb-4">
@@ -28,17 +62,16 @@ export default function LoginPage() {
             Login
           </h1>
 
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label
-                htmlFor="email"
-                className="block text-sm font-bold text-white mb-1"
-              >
+              <label htmlFor="email" className="block text-sm font-bold text-white mb-1">
                 Email
               </label>
               <input
                 type="email"
                 id="email"
+                value={form.email}
+                onChange={handleChange}
                 placeholder="seu@email.com"
                 className="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-900 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 required
@@ -46,25 +79,23 @@ export default function LoginPage() {
             </div>
 
             <div className="mb-6">
-              <label
-                htmlFor="password"
-                className="block text-sm font-bold text-white mb-1"
-              >
+              <label htmlFor="password" className="block text-sm font-bold text-white mb-1">
                 Senha
               </label>
               <input
                 type="password"
                 id="password"
+                value={form.password}
+                onChange={handleChange}
                 placeholder="********"
                 className="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-900 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 required
               />
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-emerald-400 text-gray-950 font-semibold py-2 rounded-lg transition duration-300 ease-in-out hover:cursor-pointer hover:bg-cyan-500 hover:text-white hover:shadow-lg hover:shadow-cyan-500/50 hover:scale-[1.01]"
-            >
+            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+
+            <button type="submit" className="w-full bg-emerald-400 text-gray-950 font-semibold py-2 rounded-lg transition duration-300 ease-in-out hover:cursor-pointer hover:bg-cyan-500 hover:text-white hover:shadow-lg hover:shadow-cyan-500/50 hover:scale-[1.01]">
               Entrar
             </button>
           </form>

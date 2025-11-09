@@ -23,7 +23,7 @@ export default function AiLoading() {
         }}
       >
         <Image
-          src="/ai-sample.svg"
+          src="/logo.png"
           width={30}
           height={30}
           alt="AI Icon"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Mic, Send } from "lucide-react";
+import { Home, Send, LogOut } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Message } from "@/types/message";
 import MessageBox from "./MessageBox";
@@ -18,10 +18,41 @@ export default function ChatbotBox() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
+  // 🔹 Rolagem automática quando há novas mensagens
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // 🔹 Carregar histórico do usuário
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const token =
+          typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        if (!token) return;
+
+        const res = await fetch(`${API_URL}/chat`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) throw new Error(`Erro ${res.status} ao buscar histórico`);
+
+        const history = await res.json();
+        console.log("Histórico recebido do backend:", history);
+
+        if (Array.isArray(history.history)) setMessages(history.history);
+        else if (Array.isArray(history)) setMessages(history);
+        else console.warn("Formato inesperado do histórico:", history);
+      } catch (err) {
+        console.error("Erro ao carregar histórico:", err);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
+  // 🔹 Enviar mensagem
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
@@ -44,9 +75,8 @@ export default function ChatbotBox() {
         body: JSON.stringify({ message: userMessage.text }),
       });
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`Erro ${response.status} ao enviar mensagem`);
-      }
 
       const data = await response.json();
 
@@ -65,19 +95,33 @@ export default function ChatbotBox() {
     }
   };
 
+  // 🔹 Logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
+  };
+
   return (
-    <div className="flex flex-col items-center justify-between bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-[75vh] w-full sm:w-[68%] relative">
+    <div className="flex flex-col items-center justify-between bg-[var(--branco)] rounded-xl border border-[var(--cinza-claro)] shadow-md p-6 h-[75vh] w-full sm:w-[68%] relative">
       {/* Cabeçalho */}
-      <div className="w-full flex flex-row items-center justify-between">
+      <div className="w-full flex flex-row items-center justify-between pb-4 border-b border-[var(--cinza-claro)]">
         <div className="flex flex-row items-center gap-2">
-          <Image src="/ai-sample.svg" width={30} height={30} alt="AI Icon" />
-          <h1 className="font-bold text-gray-800">Codey.IA</h1>
+          <Image src="/logo.png" width={32} height={32} alt="AI Icon" />
+          <h1 className="font-bold text-[var(--primary-color)] text-lg">
+            Codey.IA
+          </h1>
         </div>
 
-        <Link href="/home" className="flex items-center gap-2 border rounded-lg px-3 py-1 hover:bg-gray-100">
-          <Home className="w-4 h-4" />
-          <span className="hidden md:flex">Home</span>
-        </Link>
+        <div className="flex flex-row gap-3 items-center">
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--primary-color)] text-white hover:bg-[var(--primary-dark)] transition"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm font-medium">Sair</span>
+          </button>
+        </div>
       </div>
 
       {/* Área de mensagens */}
@@ -115,21 +159,14 @@ export default function ChatbotBox() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           disabled={isLoading}
-          className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-gray-800 focus:ring-2 focus:ring-blue-400 outline-none"
+          className="flex-1 border border-[var(--cinza-claro)] rounded-full px-4 py-2 text-[var(--texto-escuro)] focus:ring-2 focus:ring-[var(--primary-color)] outline-none"
         />
         <button
           type="submit"
           disabled={isLoading}
-          className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
+          className="p-2 rounded-full bg-[var(--primary-color)] text-white hover:bg-[var(--primary-dark)] transition disabled:opacity-50"
         >
           <Send className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          disabled={isLoading}
-          className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition disabled:opacity-50"
-        >
-          <Mic className="w-4 h-4 text-gray-700" />
         </button>
       </form>
     </div>
